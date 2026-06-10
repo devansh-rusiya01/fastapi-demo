@@ -1,62 +1,34 @@
-from fastapi import APIRouter, HTTPException, Depends
-from models import UserSignup, UserLogin
+from fastapi import APIRouter, HTTPException
+from models import UserIn
 from database import user_collection
 from utils import hash_password, verify_password, create_token
+from fastapi import Depends
 from dependencies import get_current_user
 
 router = APIRouter()
 
 @router.post("/signup")
-def signup(user: UserSignup):
+def signup(user: UserIn):
     if user_collection.find_one({"email": user.email}):
         raise HTTPException(status_code=400, detail="Email already exists")
 
     user_dict = {
-        "first_name": user.first_name,
-        "last_name": user.last_name,
+        "username": user.username,
         "email": user.email,
-        "password": hash_password(user.password),
-        "phone_number": user.phone_number,
-        "role": user.role
+        "password": hash_password(user.password)
     }
     user_collection.insert_one(user_dict)
-    return {
-        "message": "User created successfully",
-        "user": {
-            "first_name": user.first_name,
-            "last_name": user.last_name,
-            "email": user.email,
-            "phone_number": user.phone_number,
-            "role": user.role
-        }
-    }
+    return {"message": "User created successfully"}
 
 @router.post("/login")
-def login(user: UserLogin):
+def login(user: UserIn):
     db_user = user_collection.find_one({"email": user.email})
     if not db_user or not verify_password(user.password, db_user["password"]):
         raise HTTPException(status_code=401, detail="Invalid email or password")
 
-    token, expires_in = create_token({"user_id": str(db_user["_id"])})
-    return {
-        "token": token,
-        "token_type": "bearer",
-        "expires_in": expires_in,
-        "user": {
-            "first_name": db_user.get("first_name"),
-            "last_name": db_user.get("last_name"),
-            "email": db_user["email"]
-        }
-    }
+    token = create_token({"user_id": str(db_user["_id"])})
+    return {"token": token}
 
 @router.get("/protected")
-def protected_route(current_user: dict = Depends(get_current_user)):
-    return {
-        "message": "Welcome! You are logged in.",
-        "user": {
-            "first_name": current_user.get("first_name"),
-            "last_name": current_user.get("last_name"),
-            "email": current_user.get("email"),
-            "role": current_user.get("role")
-        }
-    }
+def protected_route(current_user: str = Depends(get_current_user)):
+    return {"message": f"Welcome! You are logged in as user ID: {current_user}"}
