@@ -4,7 +4,7 @@ from database import task_collection
 from pydantic import BaseModel
 from bson import ObjectId
 
-router = APIRouter()
+router = APIRouter(prefix="/v1")
 
 class Task(BaseModel):
     title: str
