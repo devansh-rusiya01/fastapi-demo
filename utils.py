@@ -17,11 +17,10 @@ def hash_password(password: str) -> str:
 def verify_password(plain: str, hashed: str) -> bool:
     return pwd_context.verify(plain, hashed)
 
-def create_token(data: dict) -> tuple:
+def create_token(data: dict) -> str:
     to_encode = data.copy()
     to_encode["exp"] = datetime.utcnow() + timedelta(minutes=EXPIRES_IN_MINUTES)
-    token = jwt.encode(to_encode, JWT_SECRET, algorithm=ALGORITHM)
-    return token, EXPIRES_IN_MINUTES * 60
+    return jwt.encode(to_encode, JWT_SECRET, algorithm=ALGORITHM)
 
 def decode_token(token: str):
     try:
